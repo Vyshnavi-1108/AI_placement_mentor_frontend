@@ -2,17 +2,28 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import ReactMarkdown from "react-markdown";
 import { getChatHistory } from "../services/chatService";
+import ChatSidebar from "../components/ChatSidebar";
+import { getSessions, createSession } from "../services/sessionService";
 
 function Chat() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [sessions, setSessions] = useState([]);
+  const [selectedSession, setSelectedSession] = useState(null);
 
   const bottomRef = useRef(null);
 
   useEffect(() => {
+    loadSessions();
     loadHistory();
   }, []);
+
+  useEffect(() => {
+    if (selectedSession) {
+      loadHistory(selectedSession);
+    }
+  }, [selectedSession]);
 
   // Auto Scroll
   useEffect(() => {
@@ -21,9 +32,9 @@ function Chat() {
     });
   }, [messages, loading]);
 
-  const loadHistory = async () => {
+  const loadHistory = async (sessionId) => {
     try {
-      const history = await getChatHistory();
+      const history = await getChatHistory(sessionId);
 
       const formatted = history.map((msg) => ({
         role: msg.role,
@@ -57,7 +68,7 @@ function Chat() {
       const res = await axios.post(
         `http://127.0.0.1:8000/api/chat/?message=${encodeURIComponent(
           currentMessage,
-        )}`,
+        )}&session_id=${selectedSession}`,
         {},
         {
           headers: {
@@ -98,78 +109,115 @@ function Chat() {
     }
   };
 
+  const loadSessions = async () => {
+    try {
+      const data = await getSessions();
+
+      setSessions(data);
+
+      if (data.length > 0) {
+        setSelectedSession(data[0].id);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const createNewChat = async () => {
+    try {
+      const session = await createSession();
+
+      setSessions((prev) => [session, ...prev]);
+
+      setSelectedSession(session.id);
+
+      setMessages([]);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col">
-      {/* Header */}
-      <div className="border-b border-slate-800 p-4">
-        <h1 className="text-3xl font-bold">AI Mentor Chat</h1>
-        <button
-          onClick={() => setMessages([])}
-          className="bg-red-500 px-4 py-2 rounded"
-        >
-          Clear
-        </button>
-      </div>
+    <div className="min-h-screen bg-slate-950 text-white flex">
+      <ChatSidebar
+        sessions={sessions}
+        createNewChat={createNewChat}
+        selectedSession={selectedSession}
+        setSelectedSession={setSelectedSession}
+      />
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {messages.length === 0 && (
-          <div className="text-center text-gray-400 mt-20">
-            Ask your first career question 🚀
-          </div>
-        )}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <div className="border-b border-slate-800 p-4">
+          <h1 className="text-3xl font-bold">AI Mentor Chat</h1>
 
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`flex ${
-              msg.role === "user" ? "justify-end" : "justify-start"
-            }`}
+          <button
+            onClick={() => setMessages([])}
+            className="bg-red-500 px-4 py-2 rounded mt-2"
           >
+            Clear
+          </button>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {messages.length === 0 && (
+            <div className="text-center text-gray-400 mt-20">
+              Ask your first career question 🚀
+            </div>
+          )}
+
+          {messages.map((msg, index) => (
             <div
-              className={`max-w-3xl p-4 rounded-2xl ${
-                msg.role === "user" ? "bg-blue-600" : "bg-slate-800"
+              key={index}
+              className={`flex ${
+                msg.role === "user" ? "justify-end" : "justify-start"
               }`}
             >
-              <ReactMarkdown>{msg.content}</ReactMarkdown>
+              <div
+                className={`max-w-3xl p-4 rounded-2xl ${
+                  msg.role === "user" ? "bg-blue-600" : "bg-slate-800"
+                }`}
+              >
+                <ReactMarkdown>{msg.content}</ReactMarkdown>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
 
-        {/* Typing Indicator */}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="bg-slate-800 px-4 py-3 rounded-2xl">
-              🤖 AI is typing...
+          {loading && (
+            <div className="flex justify-start">
+              <div className="bg-slate-800 px-4 py-3 rounded-2xl">
+                🤖 AI is typing...
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div ref={bottomRef}></div>
-      </div>
+          <div ref={bottomRef}></div>
+        </div>
 
-      {/* Input */}
-      <div className="border-t border-slate-800 p-4 flex gap-3">
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Ask anything about placements..."
-          className="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-3 text-white"
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              sendMessage();
-            }
-          }}
-        />
+        {/* Input */}
+        <div className="border-t border-slate-800 p-4 flex gap-3">
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Ask anything about placements..."
+            className="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-3 text-white"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                sendMessage();
+              }
+            }}
+          />
 
-        <button
-          onClick={sendMessage}
-          disabled={loading}
-          className="bg-blue-600 hover:bg-blue-700 px-6 rounded-lg disabled:opacity-50"
-        >
-          {loading ? "..." : "Send"}
-        </button>
+          <button
+            onClick={sendMessage}
+            disabled={loading}
+            className="bg-blue-600 hover:bg-blue-700 px-6 rounded-lg disabled:opacity-50"
+          >
+            {loading ? "..." : "Send"}
+          </button>
+        </div>
       </div>
     </div>
   );
