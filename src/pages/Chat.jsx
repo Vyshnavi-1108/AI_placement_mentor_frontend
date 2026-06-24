@@ -214,6 +214,15 @@ function Chat() {
                   }
                   return updated;
                 });
+              } else if (data.error) {
+                assistantReply = `⚠️ AI Mentor Error: ${data.error}`;
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  if (updated.length > 0) {
+                    updated[updated.length - 1].content = assistantReply;
+                  }
+                  return updated;
+                });
               }
             } catch (err) {
               console.error(err);
