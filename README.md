@@ -1,6 +1,6 @@
-# CareerPrep AI - Full Stack AI Placement Mentorship Platform
+# AI Placement Mentor - Full Stack AI Placement Mentorship Platform
 
-**CareerPrep AI** is an intelligent, full-stack placement preparation platform designed to accelerate student readiness for technical and non-technical job roles. The platform utilizes advanced AI to build personalized preparation tracks, assess answers with real-time feedback, and maintain daily study consistency.
+**AI Placement Mentor** is an intelligent, full-stack placement preparation platform designed to accelerate student readiness for technical and non-technical job roles. The platform utilizes advanced AI to build personalized preparation tracks, assess answers with real-time feedback, and maintain daily study consistency.
 
 ---
 
